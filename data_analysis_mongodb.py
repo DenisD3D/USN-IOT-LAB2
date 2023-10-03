@@ -16,9 +16,9 @@ if __name__ == '__main__':
     legend = ["AM2320Humidity", "AM2320Temperature", "TMP36"]
     for row in db.get_data():
         t = row["timestamp"].replace(tzinfo=tz.tzutc()).astimezone(tz.tzlocal())
-        humidity_am = row["humidity_AM2320"]
-        temp_am = row["temp_AM2320"]
-        temp_tmp = row["temp_TMP36"]
+        humidity_am = row["AM2320Humidity"]
+        temp_am = row["AM2320Temperature"]
+        temp_tmp = row["TMP36"]
 
         time.append(t)
         data[0].append(humidity_am)
