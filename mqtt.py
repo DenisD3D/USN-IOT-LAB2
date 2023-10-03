@@ -16,7 +16,7 @@ class MQTT:
         self.client.username_pw_set(self.username, self.password)
         self.client.connect(self.host, self.port)
 
-    def publish(self, topic, message):
+    def publish(self, topic, message= None):
         self.client.publish(f"IOT2/{topic}", message)
 
     def subscribe(self, topic, callback):

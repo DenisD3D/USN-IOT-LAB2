@@ -30,7 +30,8 @@ def button_watch_thread():
             print("Alarm acknowledged")
             GPIO.output(18, GPIO.LOW)
             is_alarm_set = False
-            db.ack_alarm()
+            db.ack_alarm()  # Acknowledge alarm in database
+            mqtt.publish("alarm_ack")  # Publish alarm ack to MQTT
 
         time.sleep(0.1)
 
