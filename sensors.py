@@ -1,5 +1,6 @@
 import os
 from abc import ABC
+from typing import Union
 
 from lowpass_filter import LowPassFilter
 
@@ -23,7 +24,10 @@ class Sensor(ABC):
 
     def get_filtered_value(self):
         if self.low_pass_filter_interval is not None:
-            return self.low_pass_filter.filter(self.get_value())
+            value = self.get_value()
+            if value is None:
+                return None
+            return self.low_pass_filter.filter(value)
         else:
             return self.get_value()
 
@@ -40,8 +44,11 @@ class AM2320Humidity(Sensor):
     def get_value(self):
         try:
             return self.sensor.relative_humidity if not should_fake_sensor() else 0
-        except None: # TODO add Exception name
-            return 0
+        except OSError:
+            return None
+        except RuntimeError:
+            return None
+
 
 class AM2320Temperature(Sensor):
     def __init__(self, low_pass_filter_interval=None):
@@ -55,8 +62,11 @@ class AM2320Temperature(Sensor):
     def get_value(self):
         try:
             return self.sensor.temperature if not should_fake_sensor() else 0
-        except None: # TODO add Exception name
-            return 0
+        except OSError:
+            return None
+        except RuntimeError:
+            return None
+
 
 class TMP36(Sensor):
     def __init__(self, low_pass_filter_interval=None):
@@ -68,5 +78,7 @@ class TMP36(Sensor):
     def get_value(self):
         try:
             return (self.adc.value * 3.3 - 0.5) * 100 if not should_fake_sensor() else 0
-        except None: # TODO add Exception name
-            return 0
+        except OSError:
+            return None
+        except RuntimeError:
+            return None

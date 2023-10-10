@@ -30,6 +30,9 @@ def button_watch_thread():
             print("Alarm acknowledged")
             GPIO.output(18, GPIO.LOW)
             is_alarm_set = False
+            SENSORS["AM2320Humidity"]["alarm"]["is_active"] = False
+            SENSORS["AM2320Temperature"]["alarm"]["is_active"] = False
+            SENSORS["TMP36"]["alarm"]["is_active"] = False
             db.ack_alarm()  # Acknowledge alarm in database
             mqtt.publish("alarm_ack")  # Publish alarm ack to MQTT
 
@@ -39,6 +42,9 @@ def button_watch_thread():
 if __name__ == '__main__':
     load_dotenv()  # Load environment variables from .env file
     signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C
+
+    is_running = True
+    is_alarm_set = False
 
     # Initialize RaspberryPi GPIO
     if not should_fake_sensor():
@@ -57,21 +63,24 @@ if __name__ == '__main__':
             "sensor": AM2320Humidity(low_pass_filter_interval=2.3),
             "alarm": {
                 "min": 0,
-                "max": 100
+                "max": 60,
+                "is_active": False
             },
         },
         "AM2320Temperature": {
             "sensor": AM2320Temperature(low_pass_filter_interval=2.3),
             "alarm": {
                 "min": 0,
-                "max": 100
+                "max": 25,
+                "is_active": False
             },
         },
         "TMP36": {
             "sensor": TMP36(low_pass_filter_interval=2.3),
             "alarm": {
                 "min": 0,
-                "max": 100
+                "max": 30,
+                "is_active": False
             },
         }
     }
@@ -87,8 +96,6 @@ if __name__ == '__main__':
     mqtt = MQTT(os.getenv("MQTT_BROKER_URL"), int(os.getenv("MQTT_BROKER_PORT")), os.getenv("MQTT_USERNAME"), os.getenv("MQTT_PASSWORD"))
     mqtt.client.loop_start()
 
-    is_alarm_set = False
-    is_running = True
     while is_running:
         time.sleep(2)
 
@@ -97,7 +104,8 @@ if __name__ == '__main__':
         for sensor_name, sensor_data in SENSORS.items():
             sensor_value = sensor_data["sensor"].get_filtered_value()
             sensors_values[sensor_name] = sensor_value
-            print(f"{sensor_name}: {sensor_value:.2f}")
+            if sensor_value is not None:
+                print(f"{sensor_name}: {sensor_value:.2f}")
             time.sleep(0.1)
 
         # Upload data to MongoDB
@@ -110,13 +118,19 @@ if __name__ == '__main__':
 
         # Publish data to MQTT
         for sensor_name, sensor_value in sensors_values.items():
+            if sensor_value is None:
+                continue
             mqtt.publish(sensor_name, sensor_value)
 
         # Check for alarms
         for sensor_name, sensor_data in SENSORS.items():
-            if not (sensor_data["alarm"]["min"] < sensors_values[sensor_name] < sensor_data["alarm"]["max"]):
+            if sensors_values[sensor_name] is None:
+                continue
+
+            if not (sensor_data["alarm"]["min"] < sensors_values[sensor_name] < sensor_data["alarm"]["max"]) and sensor_data["alarm"]["is_active"] is False:
                 print(f"{sensor_name} alarm!")
                 is_alarm_set = True
+                sensor_data["alarm"]["is_active"] = True
                 if not should_fake_sensor():
                     GPIO.output(18, GPIO.HIGH)  # Turn on alarm
                 db.trigger_alarm(data_id, sensor_name)  # Create alarm in database
