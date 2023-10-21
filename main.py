@@ -18,7 +18,7 @@ def signal_handler(_, __):
     is_running = False
 
 
-def button_watch_thread():
+def button_watch_thread_func():
     global is_alarm_set
     GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     while is_running:
@@ -54,7 +54,8 @@ if __name__ == '__main__':
         GPIO.setup(18, GPIO.OUT)
 
         # Initialize button watch thread
-        button_watch_thread = threading.Thread(target=button_watch_thread)
+        button_watch_thread = threading.Thread(target=button_watch_thread_func)
+        button_watch_thread.setDaemon(True)
         button_watch_thread.start()
 
     # Define sensors
@@ -63,27 +64,28 @@ if __name__ == '__main__':
             "sensor": AM2320Humidity(low_pass_filter_interval=2.3),
             "alarm": {
                 "min": 0,
-                "max": 60,
-                "is_active": False
+                "max": 60
             },
         },
         "AM2320Temperature": {
             "sensor": AM2320Temperature(low_pass_filter_interval=2.3),
             "alarm": {
                 "min": 0,
-                "max": 25,
-                "is_active": False
+                "max": 25
             },
         },
         "TMP36": {
             "sensor": TMP36(low_pass_filter_interval=2.3),
             "alarm": {
                 "min": 0,
-                "max": 30,
-                "is_active": False
+                "max": 30
             },
         }
     }
+
+    for sensor in SENSORS:
+        SENSORS[sensor]["is_active"] = False
+
 
     # Initialize database
     db = MongoDB(os.getenv('MANGODB_USERNAME'), os.getenv('MANGODB_PASSWORD'), os.getenv('MANGODB_CLUSTER_URL'))

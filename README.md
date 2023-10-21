@@ -3,7 +3,7 @@
 
 # Raspberry
 To run this project, make sure to make the following connections:
-**TODO** Add image
+![Project Sketch.png](Project%20Sketch.png)
 Rename the file `.env.example` to `.env` and fill in the required service identifiers. Also make sur to install the required dependencies:
 ```bash
 cp .env.example .env # Copy the example config file
